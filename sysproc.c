@@ -102,3 +102,23 @@ int sys_shutdown(void)
   shutdown();
   return 0;
 }
+
+int sys_schedlog(void) {
+  int n;
+
+  if(argint(0, &n) < 0)
+    return -1;
+
+  schedlog(n);
+  return 0;
+}
+
+int sys_nicefork(void)
+{
+  int nice_value;
+
+  if(argint(0, &nice_value) < 0)
+    return -1;
+
+  return nicefork(nice_value);
+}

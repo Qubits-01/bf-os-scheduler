@@ -7,6 +7,14 @@
 #include "proc.h"
 #include "spinlock.h"
 
+struct Node {
+  struct Node * next;
+  struct Node * prev;
+  int pid;
+  int virtual_deadline;
+};
+
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
@@ -19,6 +27,56 @@ extern void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void *chan);
+
+// Skip List
+struct Node * head;
+
+// void insert_node(struct Node * head, int pid, int nice_value) {
+//   struct Node * current = head;
+
+//   struct Node * node = (struct Node *) malloc(sizeof(struct Node));
+//   node->pid = pid;
+//   node->virtual_deadline = ticks + (BFS_DEFAULT_QUANTUM * (nice_value - BFS_NICE_FIRST_LEVEL + 1));
+
+//   while (node->virtual_deadline >= current->virtual_deadline) {
+//     current = current->next;
+//   }
+
+//   current->prev->next = node;
+//   node->prev = current->prev;
+//   current->prev = node;
+//   node->next = current;
+// }
+
+void delete_node(struct Node * head, int pid) {
+  struct Node * current = head;
+  while (current->pid != pid) {
+    current = current->next;
+  }
+
+  current->prev->next = current->next;
+  current->next->prev = current->prev;
+
+  // free memory
+}
+
+int get_minimum(struct Node * head) {
+  return head->next->pid;
+}
+
+int compute_virtual_deadline(int nice_value) {
+  int priority_ratio = nice_value - BFS_NICE_FIRST_LEVEL + 1;
+  return ticks + (BFS_DEFAULT_QUANTUM * priority_ratio);
+}
+
+int schedlog_active = 0;
+int schedlog_lasttick = 0;
+
+void schedlog(int n) {
+  schedlog_active = 1;
+  schedlog_lasttick = ticks + n;
+}
+
 
 void
 pinit(void)
@@ -88,6 +146,12 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+
+  // // Add to skiplist
+  // struct Node * node = (struct Node *) malloc(sizeof(struct Node));
+  // node->pid = p->pid;
+  // insert_node(head, p->pid, p->nice_value);
+
 
   release(&ptable.lock);
 
@@ -177,8 +241,10 @@ growproc(int n)
 // Create a new process copying p as the parent.
 // Sets up stack to return as if from system call.
 // Caller must set state of returned proc to RUNNABLE.
+
+
 int
-fork(void)
+nicefork(int nice_value)
 {
   int i, pid;
   struct proc *np;
@@ -199,6 +265,7 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+  np->nice_value = nice_value;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -219,6 +286,10 @@ fork(void)
   release(&ptable.lock);
 
   return pid;
+}
+
+int fork(void) {
+  return nicefork(0);
 }
 
 // Exit the current process.  Does not return.
@@ -325,6 +396,8 @@ scheduler(void)
   struct proc *p;
   struct cpu *c = mycpu();
   c->proc = 0;
+
+
   
   for(;;){
     // Enable interrupts on this processor.
@@ -332,6 +405,7 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    // int next_process_pid = get_minimum(head);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
@@ -342,12 +416,39 @@ scheduler(void)
       c->proc = p;
       switchuvm(p);
       p->state = RUNNING;
+      p->ticks_left = BFS_DEFAULT_QUANTUM;
+
+      // Schedlog
+      if (schedlog_active) {
+        if (ticks > schedlog_lasttick) {
+          schedlog_active = 0;
+        } else {
+          cprintf("%d", ticks);
+          struct proc *pp;
+          int highest_idx = -1;
+          for (int k = 0; k < NPROC; k++) {
+            pp = &ptable.proc[k];
+            if (pp->state != UNUSED) {
+              highest_idx = k;
+            }
+          }
+          for (int k = 0; k <= highest_idx; k++) {
+            pp = &ptable.proc[k];
+            if (pp->state == UNUSED) cprintf(" | [%d] ---:0", k);
+            else if (pp->state == RUNNING) cprintf(" | [%d]*%s:%d", k, pp->name, pp->state);
+            else cprintf(" | [%d] %s:%d", k, pp->name, pp->state);
+          }
+          cprintf("\n");
+        }
+      }
 
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
+      // delete_node(head, p->pid);
+      // insert_node(head, p->pid, p->nice_value);
       c->proc = 0;
     }
     release(&ptable.lock);

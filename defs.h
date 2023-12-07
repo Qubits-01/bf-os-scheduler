@@ -121,6 +121,8 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+void            schedlog(int);
+int             nicefork(int nice_value);
 
 // swtch.S
 void            swtch(struct context**, struct context*);
