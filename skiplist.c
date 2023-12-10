@@ -1,11 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
+
 #include "bfs.h"
+#include "defs.h"
 #include "skiplist.h"
 
+#define NULL 0
 #define SKIPLIST_LEVELS 4
 
-
+int seed = 1234567;
 
 struct skiplist * init_skiplist() {
   struct skiplist * skiplist = (struct skiplist *) malloc(sizeof(struct skiplist));
@@ -106,7 +107,7 @@ void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
 
     current_level++;
   }
-  printf("inserted|[%d]%d\n", pid, insertion_max_level);
+  cprintf("inserted|[%d]%d\n", pid, insertion_max_level);
 }
 
 void delete_from_levels(struct node * node) {
@@ -156,7 +157,7 @@ void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
   }
 
   delete_from_levels(current_node);
-  printf("removed|[%d]%d\n", pid, current_level);
+  cprintf("removed|[%d]%d\n", pid, current_level);
 }
 
 int get_minimum(struct skiplist * skiplist) {
@@ -168,12 +169,12 @@ void print_skiplist(struct skiplist * skiplist) {
 
   while (current_level >= 0) {
     struct node * current_node = skiplist->headers[current_level];
-    printf("level %d: ", current_level);
+    cprintf("level %d: ", current_level);
     while (current_node != NULL) {
-      printf("%d(pid:%d) -> ", current_node->virtual_deadline, current_node->pid);
+      cprintf("%d(pid:%d) -> ", current_node->virtual_deadline, current_node->pid);
       current_node = current_node->next;
     }
-    printf("\n");
+    cprintf("\n");
     current_level--;
   }
   
