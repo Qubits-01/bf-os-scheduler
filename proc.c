@@ -77,6 +77,22 @@ int randomize_max_level(int skiplist_max_level) {
   return insertion_max_level;
 }
 
+void print_skiplist(struct skiplist * skiplist) {
+  int current_level = skiplist->levels - 1;
+
+  while (current_level >= 0) {
+    struct node * current_node = skiplist->headers[current_level];
+    cprintf("level %d: ", current_level);
+    while (current_node != NULL) {
+      cprintf("%d(pid:%d) -> ", current_node->virtual_deadline, current_node->pid);
+      current_node = current_node->next;
+    }
+    cprintf("\n");
+    current_level--;
+  }
+  
+}
+
 void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
 
   int insertion_max_level = randomize_max_level(skiplist->levels - 1); // TO DO: randomize
@@ -115,6 +131,7 @@ void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
     current_level++;
   }
   cprintf("inserted|[%d]%d\n", pid, insertion_max_level);
+  print_skiplist(skiplist); // Delete this
 }
 
 void delete_from_levels(struct node * node) {
@@ -171,21 +188,7 @@ int get_minimum(struct skiplist * skiplist) {
   return skiplist->headers[0]->next->pid;
 }
 
-void print_skiplist(struct skiplist * skiplist) {
-  int current_level = skiplist->levels - 1;
 
-  while (current_level >= 0) {
-    struct node * current_node = skiplist->headers[current_level];
-    cprintf("level %d: ", current_level);
-    while (current_node != NULL) {
-      cprintf("%d(pid:%d) -> ", current_node->virtual_deadline, current_node->pid);
-      current_node = current_node->next;
-    }
-    cprintf("\n");
-    current_level--;
-  }
-  
-}
 // Skiplist End
 
 
@@ -321,10 +324,7 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
-  // Add to skiplist
 
-  p->virtual_deadline = compute_virtual_deadline(p->nice_value);
-  insert_node(skiplist, p->pid, p->virtual_deadline);
 
   return p;
 }
