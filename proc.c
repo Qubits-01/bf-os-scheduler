@@ -6,13 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
-
-struct Node {
-  struct Node * next;
-  struct Node * prev;
-  int pid;
-  int virtual_deadline;
-};
+#include "skiplist.h"
 
 
 struct {
@@ -28,41 +22,7 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
-// Skip List
-struct Node * head;
 
-// void insert_node(struct Node * head, int pid, int nice_value) {
-//   struct Node * current = head;
-
-//   struct Node * node = (struct Node *) malloc(sizeof(struct Node));
-//   node->pid = pid;
-//   node->virtual_deadline = ticks + (BFS_DEFAULT_QUANTUM * (nice_value - BFS_NICE_FIRST_LEVEL + 1));
-
-//   while (node->virtual_deadline >= current->virtual_deadline) {
-//     current = current->next;
-//   }
-
-//   current->prev->next = node;
-//   node->prev = current->prev;
-//   current->prev = node;
-//   node->next = current;
-// }
-
-void delete_node(struct Node * head, int pid) {
-  struct Node * current = head;
-  while (current->pid != pid) {
-    current = current->next;
-  }
-
-  current->prev->next = current->next;
-  current->next->prev = current->prev;
-
-  // free memory
-}
-
-int get_minimum(struct Node * head) {
-  return head->next->pid;
-}
 
 int compute_virtual_deadline(int nice_value) {
   int priority_ratio = nice_value - BFS_NICE_FIRST_LEVEL + 1;
@@ -405,9 +365,10 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    // TO DO: Get next process pid from skip list
     // int next_process_pid = get_minimum(head);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){ 
+       if(p->state != RUNNABLE) // switch to: if(p->pid != next_process_pid || p->state != RUNNABLE)
         continue;
 
       // Switch to chosen process.  It is the process's job
@@ -435,8 +396,7 @@ scheduler(void)
           for (int k = 0; k <= highest_idx; k++) {
             pp = &ptable.proc[k];
             if (pp->state == UNUSED) cprintf(" | [%d] ---:0", k);
-            else if (pp->state == RUNNING) cprintf(" | [%d]*%s:%d", k, pp->name, pp->state);
-            else cprintf(" | [%d] %s:%d", k, pp->name, pp->state);
+            else cprintf("[%d]%s:%d:%d,", pp->pid, pp->name, pp->state, pp->nice_value);
           }
           cprintf("\n");
         }
