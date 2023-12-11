@@ -52,6 +52,7 @@ struct proc {
   int ticks_left;
   int nice_value;
   int virtual_deadline;
+  int woke_up;
 };
 
 // Process memory is laid out contiguously, low addresses first:

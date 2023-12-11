@@ -182,7 +182,7 @@ void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
   if (current_level >= 0) {
     delete_from_levels(current_node);
   }
-  
+
   cprintf("removed|[%d]%d\n", pid, current_level);
 }
 
@@ -303,6 +303,7 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->woke_up = 0;
 
   // // Add to skiplist
   // struct Node * node = (struct Node *) malloc(sizeof(struct Node));
@@ -578,12 +579,23 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
+    // Add to skip list woke up processes
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+      if (p->woke_up) {
+        cprintf("inserting due to wakeup\n");
+        p->virtual_deadline = compute_virtual_deadline(p->nice_value);
+        insert_node(skiplist, p->pid, p->virtual_deadline);
+        p->woke_up = 0;
+      }
+    }
+    
+
     // TO DO: Get next process pid from skip list
     int next_process_pid = get_minimum(skiplist);
     cprintf("next pid is %d\n", next_process_pid);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      // if (p->pid != next_process_pid) {// switch to: if(p->pid != next_process_pid || p->state != RUNNABLE)
-      if(p->state != RUNNABLE) {
+      if (p->pid != next_process_pid) {// switch to: if(p->pid != next_process_pid || p->state != RUNNABLE)
+      // if(p->state != RUNNABLE) {
         continue;
       }
 
@@ -758,6 +770,9 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
+
+      // change wokeup
+      p->woke_up = 1;
 
       //Insert on skiplist
       // cprintf("inserting due to wakeup\n");
