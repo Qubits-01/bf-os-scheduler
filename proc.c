@@ -13,7 +13,7 @@
 #define NULL 0
 #define SKIPLIST_LEVELS 4
 
-int seed = 1234567;
+int seed = 1234567; // To Do: move to bfs.h
 
 struct skiplist * init_skiplist() {
   struct skiplist * skiplist = (struct skiplist *) kalloc();
@@ -90,7 +90,7 @@ void print_skiplist(struct skiplist * skiplist) {
     cprintf("\n");
     current_level--;
   }
-  
+
 }
 
 void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
@@ -102,14 +102,14 @@ void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
   int current_level = skiplist->levels - 1;
 
   struct node * current_node = skiplist->headers[current_level];
-  
+
   // Find previous nodes to insert per level
   while (current_level >= 0) {
     // Find previous node in a level
-    while (!(current_node->next == NULL || virtual_deadline <= current_node->next->virtual_deadline)) { 
+    while (!(current_node->next == NULL || virtual_deadline <= current_node->next->virtual_deadline)) {
       current_node = current_node->next;
     }
-    
+
     // Store previous node if within max level
     if (insertion_max_level >= current_level) {
       prev_nodes[current_level] = current_node;
@@ -120,12 +120,12 @@ void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
 
     current_level--;
   }
-  
+
   // Insert new nodes given previous nodees per level
   current_level = 0;
   struct node * forward = NULL;
   while (current_level <= insertion_max_level) {
-    
+
     forward = insert_to_level(pid, virtual_deadline, prev_nodes[current_level], forward);
 
     current_level++;
@@ -148,13 +148,13 @@ void delete_from_levels(struct node * node) {
     }
 
     kfree((char*)current_node);
-    
+
     current_node = next_to_delete;
   }
 }
 
 void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
-  
+
 
   // Start at header of top level
   int current_level = skiplist->levels - 1;
@@ -179,13 +179,21 @@ void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
       current_level--;
     }
   }
-
-  delete_from_levels(current_node);
+  if (current_level >= 0) {
+    delete_from_levels(current_node);
+  }
+  
   cprintf("removed|[%d]%d\n", pid, current_level);
 }
 
 int get_minimum(struct skiplist * skiplist) {
-  return skiplist->headers[0]->next->pid;
+  cprintf("get minimum call:\n");
+  print_skiplist(skiplist);
+  if (skiplist->headers[0]->next != NULL) {
+    return skiplist->headers[0]->next->pid;
+  }
+  return -10;
+
 }
 
 
@@ -244,10 +252,10 @@ struct cpu*
 mycpu(void)
 {
   int apicid, i;
-  
+
   if(readeflags()&FL_IF)
     panic("mycpu called with interrupts enabled\n");
-  
+
   apicid = lapicid();
   // APIC IDs are not guaranteed to be contiguous. Maybe we should have
   // a reverse map, or reserve a register to store &cpus[i].
@@ -279,6 +287,7 @@ myproc(void) {
 static struct proc*
 allocproc(void)
 {
+  cprintf("--allocproc called\n");
   struct proc *p;
   char *sp;
 
@@ -334,11 +343,12 @@ found:
 void
 userinit(void)
 {
+  cprintf("--userinit called\n");
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
   p = allocproc();
-  
+
   initproc = p;
   if((p->pgdir = setupkvm()) == 0)
     panic("userinit: out of memory?");
@@ -401,6 +411,7 @@ growproc(int n)
 int
 nicefork(int nice_value)
 {
+  cprintf("--nicefork called\n");
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
@@ -449,6 +460,7 @@ nicefork(int nice_value)
 }
 
 int fork(void) {
+  cprintf("--fork called\n");
   return nicefork(0);
 }
 
@@ -458,6 +470,7 @@ int fork(void) {
 void
 exit(void)
 {
+  //cprintf("--exit called\n");
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
@@ -503,10 +516,11 @@ exit(void)
 int
 wait(void)
 {
+  //cprintf("--wait called\n");
   struct proc *p;
   int havekids, pid;
   struct proc *curproc = myproc();
-  
+
   acquire(&ptable.lock);
   for(;;){
     // Scan through table looking for exited children.
@@ -558,7 +572,6 @@ scheduler(void)
   c->proc = 0;
 
 
-  
   for(;;){
     // Enable interrupts on this processor.
     sti();
@@ -566,10 +579,14 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     // TO DO: Get next process pid from skip list
-    // int next_process_pid = get_minimum(head);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){ 
-       if(p->state != RUNNABLE) // switch to: if(p->pid != next_process_pid || p->state != RUNNABLE)
+    int next_process_pid = get_minimum(skiplist);
+    cprintf("next pid is %d\n", next_process_pid);
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      // if (p->pid != next_process_pid) {// switch to: if(p->pid != next_process_pid || p->state != RUNNABLE)
+      if(p->state != RUNNABLE) {
         continue;
+      }
+
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
@@ -602,13 +619,25 @@ scheduler(void)
         }
       }
 
+      //cprintf("Context switching from scheduler to %s [scheduler]\n", p->name);
       swtch(&(c->scheduler), p->context);
+      //cprintf("Context switch to scheduler complete [scheduler]\n");
       switchkvm();
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
-      // delete_node(head, p->pid);
-      // insert_node(head, p->pid, p->nice_value);
+      cprintf("here\n");
+      if (p->state == RUNNABLE) {
+        // Delete and re-insert on skiplist
+        delete_node(skiplist, p->pid, p->virtual_deadline);
+
+        p->virtual_deadline = compute_virtual_deadline(p->nice_value);
+        insert_node(skiplist, p->pid, p->virtual_deadline);
+      } else if (p->state == SLEEPING) {
+        delete_node(skiplist, p->pid, p->virtual_deadline);
+      }
+
+
       c->proc = 0;
     }
     release(&ptable.lock);
@@ -638,7 +667,9 @@ sched(void)
   if(readeflags()&FL_IF)
     panic("sched interruptible");
   intena = mycpu()->intena;
+  //cprintf("Context switching from %s to scheduler [sched]\n", p->name);
   swtch(&p->context, mycpu()->scheduler);
+  //cprintf("Context switch to %s complete [sched]\n", p->name);
   mycpu()->intena = intena;
 }
 
@@ -646,6 +677,7 @@ sched(void)
 void
 yield(void)
 {
+  //cprintf("--yield called\n");
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
   sched();
@@ -678,8 +710,9 @@ forkret(void)
 void
 sleep(void *chan, struct spinlock *lk)
 {
+
   struct proc *p = myproc();
-  
+  //cprintf("--sleep called with pid:%d\n", p->pid);
   if(p == 0)
     panic("sleep");
 
@@ -699,6 +732,8 @@ sleep(void *chan, struct spinlock *lk)
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
+
+
 
   sched();
 
@@ -720,15 +755,23 @@ wakeup1(void *chan)
 {
   struct proc *p;
 
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
-    if(p->state == SLEEPING && p->chan == chan)
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
+
+      //Insert on skiplist
+      // cprintf("inserting due to wakeup\n");
+      // p->virtual_deadline = compute_virtual_deadline(p->nice_value);
+      // insert_node(skiplist, p->pid, p->virtual_deadline);
+    }
+  }
 }
 
 // Wake up all processes sleeping on chan.
 void
 wakeup(void *chan)
 {
+  //cprintf("--wakeup called\n");
   acquire(&ptable.lock);
   wakeup1(chan);
   release(&ptable.lock);
@@ -740,6 +783,7 @@ wakeup(void *chan)
 int
 kill(int pid)
 {
+  //cprintf("--kill called\n");
   struct proc *p;
 
   acquire(&ptable.lock);

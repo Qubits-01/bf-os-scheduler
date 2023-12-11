@@ -4,6 +4,7 @@
     "stdio.h": "c",
     "stdlib.h": "c",
     "defs.h": "c",
-    "param.h": "c"
+    "param.h": "c",
+    "bfs.h": "c"
   }
 }
