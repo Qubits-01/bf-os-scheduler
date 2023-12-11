@@ -587,6 +587,9 @@ scheduler(void)
         insert_node(skiplist, p->pid, p->virtual_deadline);
         p->woke_up = 0;
       }
+      if (p->state == ZOMBIE) {
+        delete_node(skiplist, p->pid, p->virtual_deadline);
+      }
     }
     
 
