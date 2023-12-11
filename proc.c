@@ -181,9 +181,10 @@ void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
   }
   if (current_level >= 0) {
     delete_from_levels(current_node);
+    cprintf("removed|[%d]%d\n", pid, current_level);
   }
 
-  cprintf("removed|[%d]%d\n", pid, current_level);
+  
 }
 
 int get_minimum(struct skiplist * skiplist) {
@@ -287,7 +288,7 @@ myproc(void) {
 static struct proc*
 allocproc(void)
 {
-  cprintf("--allocproc called\n");
+  //cprintf("--allocproc called\n");
   struct proc *p;
   char *sp;
 
@@ -344,7 +345,7 @@ found:
 void
 userinit(void)
 {
-  cprintf("--userinit called\n");
+  //cprintf("--userinit called\n");
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
@@ -412,7 +413,7 @@ growproc(int n)
 int
 nicefork(int nice_value)
 {
-  cprintf("--nicefork called\n");
+  //cprintf("--nicefork called\n");
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
@@ -461,7 +462,7 @@ nicefork(int nice_value)
 }
 
 int fork(void) {
-  cprintf("--fork called\n");
+  //cprintf("--fork called\n");
   return nicefork(0);
 }
 
