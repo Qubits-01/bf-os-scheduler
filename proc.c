@@ -131,7 +131,7 @@ void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
     current_level++;
   }
   cprintf("inserted|[%d]%d\n", pid, insertion_max_level);
-  print_skiplist(skiplist); // Delete this
+  //print_skiplist(skiplist); // Delete this
 }
 
 void delete_from_levels(struct node * node) {
@@ -187,8 +187,8 @@ void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
 }
 
 int get_minimum(struct skiplist * skiplist) {
-  cprintf("get minimum call:\n");
-  print_skiplist(skiplist);
+  //cprintf("get minimum call:\n");
+  //print_skiplist(skiplist);
   if (skiplist->headers[0]->next != NULL) {
     return skiplist->headers[0]->next->pid;
   }
@@ -582,20 +582,21 @@ scheduler(void)
     // Add to skip list woke up processes
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
       if (p->woke_up) {
-        cprintf("inserting due to wakeup\n");
+        //cprintf("inserting due to wakeup\n");
         p->virtual_deadline = compute_virtual_deadline(p->nice_value);
         insert_node(skiplist, p->pid, p->virtual_deadline);
         p->woke_up = 0;
       }
       if (p->state == ZOMBIE) {
         delete_node(skiplist, p->pid, p->virtual_deadline);
+        p->virtual_deadline = -1;
       }
     }
     
 
     // TO DO: Get next process pid from skip list
     int next_process_pid = get_minimum(skiplist);
-    cprintf("next pid is %d\n", next_process_pid);
+    //cprintf("next pid is %d\n", next_process_pid);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if (p->pid != next_process_pid) {// switch to: if(p->pid != next_process_pid || p->state != RUNNABLE)
       // if(p->state != RUNNABLE) {
@@ -628,7 +629,7 @@ scheduler(void)
           for (int k = 0; k <= highest_idx; k++) {
             pp = &ptable.proc[k];
             if (pp->state == UNUSED) cprintf(" | [%d] ---:0", k);
-            else cprintf("[%d]%s:%d:%d,", pp->pid, pp->name, pp->state, pp->nice_value);
+            else cprintf("[%d]%s:%d:%d(%d),", pp->pid, pp->name, pp->state, pp->nice_value, pp->virtual_deadline);
           }
           cprintf("\n");
         }
@@ -641,15 +642,17 @@ scheduler(void)
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
-      cprintf("here\n");
+      //cprintf("here\n");
       if (p->state == RUNNABLE) {
         // Delete and re-insert on skiplist
         delete_node(skiplist, p->pid, p->virtual_deadline);
+        p->virtual_deadline = -1;
 
         p->virtual_deadline = compute_virtual_deadline(p->nice_value);
         insert_node(skiplist, p->pid, p->virtual_deadline);
       } else if (p->state == SLEEPING) {
         delete_node(skiplist, p->pid, p->virtual_deadline);
+        p->virtual_deadline = -1;
       }
 
 
