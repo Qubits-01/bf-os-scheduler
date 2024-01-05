@@ -119,7 +119,7 @@ void insert_node(struct skiplist *skiplist, int pid, int virtual_deadline)
   while (current_level >= 0)
   {
     // Find previous node in a level
-    while (current_node->next != NULL && virtual_deadline > current_node->next->virtual_deadline)
+    while (current_node->next != NULL && virtual_deadline >= current_node->next->virtual_deadline)
     {
       current_node = current_node->next;
     }
@@ -147,7 +147,7 @@ void insert_node(struct skiplist *skiplist, int pid, int virtual_deadline)
     current_level++;
   }
   cprintf("inserted|[%d]%d\n", pid, insertion_max_level);
-  // print_skiplist(skiplist); // Delete this
+  print_skiplist(skiplist); // Delete this
 }
 
 void delete_from_levels(struct node *node)
@@ -215,8 +215,8 @@ void delete_node(struct skiplist *skiplist, int pid, int virtual_deadline)
 
 int get_minimum(struct skiplist *skiplist)
 {
-  cprintf("get minimum call:\n");
-  print_skiplist(skiplist);
+  // cprintf("get minimum call:\n");
+  // print_skiplist(skiplist);
   if (skiplist->headers[0]->next != NULL)
   {
     return skiplist->headers[0]->next->pid;
