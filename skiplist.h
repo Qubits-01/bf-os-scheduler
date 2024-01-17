@@ -12,7 +12,6 @@ struct skiplist {
 };
 
 struct skiplist * init_skiplist();
-void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline);
 void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline);
 int get_minimum(struct skiplist * skiplist);
 void print_skiplist(struct skiplist * skiplist);

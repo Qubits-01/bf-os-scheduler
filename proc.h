@@ -52,6 +52,7 @@ struct proc {
   int ticks_left;
   int nice_value;
   int virtual_deadline;
+  int max_level;
   int woke_up;
 };
 
