@@ -173,7 +173,7 @@ void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
       // Case where node to delete is already found
       break;
     } else {
-      while (current_node->virtual_deadline > virtual_deadline) {
+      while (current_node->virtual_deadline >= virtual_deadline) {
         current_node = current_node->prev;
       }
       current_node = current_node->forward;
@@ -184,13 +184,12 @@ void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
     delete_from_levels(current_node);
     cprintf("removed|[%d]%d\n", pid, current_level);
   }
+  cprintf("delete virtual deadline: %d process: %d\n", virtual_deadline, pid);
   print_skiplist(skiplist);
   
 }
 
 int get_minimum(struct skiplist * skiplist) {
-  //cprintf("get minimum call:\n");
-  //print_skiplist(skiplist);
   if (skiplist->headers[0]->next != NULL) {
     return skiplist->headers[0]->next->pid;
   }
@@ -644,6 +643,7 @@ scheduler(void)
         if (p->ticks_left == 0) {
           p->virtual_deadline = compute_virtual_deadline(p->nice_value);
         }
+        cprintf("Reinserting since runnuble| pid: %d, ticks_left: %d\n", p->pid, p->ticks_left);
         insert_node(skiplist, p->pid, p->virtual_deadline, p);
       } 
 
@@ -687,7 +687,6 @@ sched(void)
 void
 yield(void)
 {
-  //cprintf("--yield called\n");
   acquire(&ptable.lock);  //DOC: yieldlock
   myproc()->state = RUNNABLE;
   sched();
