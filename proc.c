@@ -305,8 +305,6 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  p->woke_up = 0;
-
   // // Add to skiplist
   // struct Node * node = (struct Node *) malloc(sizeof(struct Node));
   // node->pid = p->pid;
@@ -582,15 +580,11 @@ scheduler(void)
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     // Add to skip list woke up processes
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-      if (p->woke_up) {
-        insert_node(skiplist, p->pid, p->virtual_deadline, p);
-        p->woke_up = 0;
-      }
-      if (p->state == ZOMBIE) {
-        delete_node(skiplist, p->pid, p->virtual_deadline);
-      }
-    }
+    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    //   if (p->state == ZOMBIE) {
+    //     delete_node(skiplist, p->pid, p->virtual_deadline);
+    //   }
+    // }
     
 
     // TO DO: Get next process pid from skip list 
@@ -728,7 +722,6 @@ sleep(void *chan, struct spinlock *lk)
 {
 
   struct proc *p = myproc();
-  //cprintf("--sleep called with pid:%d\n", p->pid);
   if(p == 0)
     panic("sleep");
 
@@ -776,7 +769,7 @@ wakeup1(void *chan)
       p->state = RUNNABLE;
       // change wokeup
       cprintf("\n Process woken up: %d\n\n", p->pid);
-      p->woke_up = 1;
+      insert_node(skiplist, p->pid, p->virtual_deadline, p);
     }
   }
 }
