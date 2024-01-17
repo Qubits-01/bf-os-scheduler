@@ -184,6 +184,7 @@ void delete_node(struct skiplist * skiplist, struct proc * p) {
     delete_from_levels(current_node);
     cprintf("removed|[%d]%d\n", p->pid, current_level);
   }
+  p->max_level = -1;
   cprintf("delete virtual deadline: %d process: %d\n", p->virtual_deadline, p->pid);
   print_skiplist(skiplist);
   
@@ -405,7 +406,6 @@ growproc(int n)
 int
 nicefork(int nice_value)
 {
-  //cprintf("--nicefork called\n");
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
@@ -454,7 +454,6 @@ nicefork(int nice_value)
 }
 
 int fork(void) {
-  //cprintf("--fork called\n");
   return nicefork(0);
 }
 
