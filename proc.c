@@ -132,7 +132,6 @@ void insert_node(struct skiplist * skiplist, struct proc * p) {
     current_level++;
   }
   cprintf("inserted|[%d]%d\n", p->pid, p->max_level);
-  print_skiplist(skiplist);
 }
 
 void delete_from_levels(struct node * node) {
@@ -185,9 +184,6 @@ void delete_node(struct skiplist * skiplist, struct proc * p) {
     cprintf("removed|[%d]%d\n", p->pid, current_level);
   }
   p->max_level = -1;
-  cprintf("delete virtual deadline: %d process: %d\n", p->virtual_deadline, p->pid);
-  print_skiplist(skiplist);
-  
 }
 
 int get_minimum(struct skiplist * skiplist) {
@@ -622,8 +618,6 @@ scheduler(void)
       if (p->state == RUNNABLE && p->ticks_left == 0) {
         delete_node(skiplist, p);
         p->virtual_deadline = compute_virtual_deadline(p->nice_value);
-        
-        cprintf("Reinserting since runnuble| pid: %d, ticks_left: %d\n", p->pid, p->ticks_left);
         insert_node(skiplist, p);
       } else if (p->state == SLEEPING || p->state == ZOMBIE) {
         delete_node(skiplist, p);
@@ -722,7 +716,6 @@ sleep(void *chan, struct spinlock *lk)
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
-  cprintf("will sleep pid %d\n", p->pid);
 
   sched();
 
@@ -747,7 +740,6 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
-      cprintf("\n Process woken up: %d\n\n", p->pid);
       insert_node(skiplist, p);
     }
   }
