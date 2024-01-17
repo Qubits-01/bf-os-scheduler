@@ -645,14 +645,13 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       //cprintf("here\n");
+      delete_node(skiplist, p->pid, p->virtual_deadline);
       if (p->state == RUNNABLE) {
-        // Delete and re-insert on skiplist
-        delete_node(skiplist, p->pid, p->virtual_deadline);
-        p->virtual_deadline = compute_virtual_deadline(p->nice_value);
+        if (p->ticks_left == 0) {
+          p->virtual_deadline = compute_virtual_deadline(p->nice_value);
+        }
         insert_node(skiplist, p->pid, p->virtual_deadline, p);
-      } else if (p->state == SLEEPING) {
-        delete_node(skiplist, p->pid, p->virtual_deadline);
-      }
+      } 
 
 
       c->proc = 0;
