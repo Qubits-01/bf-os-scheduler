@@ -53,7 +53,6 @@ struct proc {
   int nice_value;
   int virtual_deadline;
   int max_level;
-  int woke_up;
 };
 
 // Process memory is laid out contiguously, low addresses first:
