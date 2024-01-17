@@ -14,7 +14,7 @@
 #define SKIPLIST_LEVELS 4
 
 int seed = 1234567; // To Do: move to bfs.h
-void insert_node(struct skiplist * skiplist, struct proc * p);
+
 
 struct skiplist * init_skiplist() {
   struct skiplist * skiplist = (struct skiplist *) kalloc();
@@ -154,7 +154,7 @@ void delete_from_levels(struct node * node) {
   }
 }
 
-void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
+void delete_node(struct skiplist * skiplist, struct proc * p) {
 
 
   // Start at header of top level
@@ -162,18 +162,18 @@ void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
   struct node * current_node = skiplist->headers[skiplist->levels - 1];
 
   while (current_level >= 0) {
-    while (current_node->virtual_deadline < virtual_deadline && current_node->pid != pid) { // TO DO: handle null case
-      if (current_node->virtual_deadline > virtual_deadline  || current_node->next == NULL) {
+    while (current_node->virtual_deadline < p->virtual_deadline && current_node->pid != p->pid) { 
+      if (current_node->virtual_deadline > p->virtual_deadline  || current_node->next == NULL) {
         break;
       }
       current_node = current_node->next;
     }
 
-    if (current_node->pid == pid && current_node->virtual_deadline == virtual_deadline) {
+    if (current_node->pid == p->pid && current_node->virtual_deadline == p->virtual_deadline) {
       // Case where node to delete is already found
       break;
     } else {
-      while (current_node->virtual_deadline >= virtual_deadline) {
+      while (current_node->virtual_deadline >= p->virtual_deadline) {
         current_node = current_node->prev;
       }
       current_node = current_node->forward;
@@ -182,9 +182,9 @@ void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
   }
   if (current_level >= 0) {
     delete_from_levels(current_node);
-    cprintf("removed|[%d]%d\n", pid, current_level);
+    cprintf("removed|[%d]%d\n", p->pid, current_level);
   }
-  cprintf("delete virtual deadline: %d process: %d\n", virtual_deadline, pid);
+  cprintf("delete virtual deadline: %d process: %d\n", p->virtual_deadline, p->pid);
   print_skiplist(skiplist);
   
 }
@@ -621,16 +621,14 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       
       if (p->state == RUNNABLE && p->ticks_left == 0) {
-        delete_node(skiplist, p->pid, p->virtual_deadline);
+        delete_node(skiplist, p);
         p->virtual_deadline = compute_virtual_deadline(p->nice_value);
         
         cprintf("Reinserting since runnuble| pid: %d, ticks_left: %d\n", p->pid, p->ticks_left);
         insert_node(skiplist, p);
-      } else if (p->state == SLEEPING) {
-        delete_node(skiplist, p->pid, p->virtual_deadline);
-      } else if (p->state == ZOMBIE) {
-        delete_node(skiplist, p->pid, p->virtual_deadline);
-      }
+      } else if (p->state == SLEEPING || p->state == ZOMBIE) {
+        delete_node(skiplist, p);
+      } 
 
 
       c->proc = 0;
