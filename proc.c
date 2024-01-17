@@ -132,7 +132,7 @@ void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline, stru
     current_level++;
   }
   cprintf("inserted|[%d]%d\n", pid, p->max_level);
-  print_skiplist(skiplist); // Delete this
+  print_skiplist(skiplist);
 }
 
 void delete_from_levels(struct node * node) {
@@ -183,9 +183,8 @@ void delete_node(struct skiplist * skiplist, int pid, int virtual_deadline) {
   if (current_level >= 0) {
     delete_from_levels(current_node);
     cprintf("removed|[%d]%d\n", pid, current_level);
-    print_skiplist(skiplist); // Delete this later
   }
-  
+  print_skiplist(skiplist);
   
 }
 
@@ -585,14 +584,11 @@ scheduler(void)
     // Add to skip list woke up processes
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
       if (p->woke_up) {
-        //cprintf("inserting due to wakeup\n");
-        p->virtual_deadline = compute_virtual_deadline(p->nice_value);
         insert_node(skiplist, p->pid, p->virtual_deadline, p);
         p->woke_up = 0;
       }
       if (p->state == ZOMBIE) {
         delete_node(skiplist, p->pid, p->virtual_deadline);
-        p->virtual_deadline = -1;
       }
     }
     
@@ -620,7 +616,7 @@ scheduler(void)
         if (ticks > schedlog_lasttick) {
           schedlog_active = 0;
         } else {
-          cprintf("%d", ticks);
+          cprintf("%d|", ticks);
           struct proc *pp;
           int highest_idx = -1;
           for (int k = 0; k < NPROC; k++) {
@@ -652,13 +648,10 @@ scheduler(void)
       if (p->state == RUNNABLE) {
         // Delete and re-insert on skiplist
         delete_node(skiplist, p->pid, p->virtual_deadline);
-        p->virtual_deadline = -1;
-
         p->virtual_deadline = compute_virtual_deadline(p->nice_value);
         insert_node(skiplist, p->pid, p->virtual_deadline, p);
       } else if (p->state == SLEEPING) {
         delete_node(skiplist, p->pid, p->virtual_deadline);
-        p->virtual_deadline = -1;
       }
 
 
