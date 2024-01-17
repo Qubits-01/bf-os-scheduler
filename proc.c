@@ -14,7 +14,7 @@
 #define SKIPLIST_LEVELS 4
 
 int seed = 1234567; // To Do: move to bfs.h
-void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline, struct proc * p);
+void insert_node(struct skiplist * skiplist, struct proc * p);
 
 struct skiplist * init_skiplist() {
   struct skiplist * skiplist = (struct skiplist *) kalloc();
@@ -94,7 +94,7 @@ void print_skiplist(struct skiplist * skiplist) {
 
 }
 
-void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline, struct proc * p) {
+void insert_node(struct skiplist * skiplist, struct proc * p) {
 
   p->max_level = randomize_max_level(skiplist->levels - 1); // TO DO: randomize
 
@@ -107,7 +107,7 @@ void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline, stru
   // Find previous nodes to insert per level
   while (current_level >= 0) {
     // Find previous node in a level
-    while (current_node->next != NULL && virtual_deadline >= current_node->next->virtual_deadline) {
+    while (current_node->next != NULL && p->virtual_deadline >= current_node->next->virtual_deadline) {
       current_node = current_node->next;
     }
 
@@ -127,11 +127,11 @@ void insert_node(struct skiplist * skiplist, int pid, int virtual_deadline, stru
   struct node * forward = NULL;
   while (current_level <= p->max_level) {
 
-    forward = insert_to_level(pid, virtual_deadline, prev_nodes[current_level], forward);
+    forward = insert_to_level(p->pid, p->virtual_deadline, prev_nodes[current_level], forward);
 
     current_level++;
   }
-  cprintf("inserted|[%d]%d\n", pid, p->max_level);
+  cprintf("inserted|[%d]%d\n", p->pid, p->max_level);
   print_skiplist(skiplist);
 }
 
@@ -288,7 +288,6 @@ myproc(void) {
 static struct proc*
 allocproc(void)
 {
-  //cprintf("--allocproc called\n");
   struct proc *p;
   char *sp;
 
@@ -304,10 +303,6 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-  // // Add to skiplist
-  // struct Node * node = (struct Node *) malloc(sizeof(struct Node));
-  // node->pid = p->pid;
-  // insert_node(head, p->pid, p->nice_value);
 
 
   release(&ptable.lock);
@@ -378,7 +373,7 @@ userinit(void)
   // Skip List
   p->nice_value = 0;
   p->virtual_deadline = compute_virtual_deadline(0);
-  insert_node(skiplist, p->pid, p->virtual_deadline, p);
+  insert_node(skiplist, p);
 }
 
 // Grow current process's memory by n bytes.
@@ -453,7 +448,7 @@ nicefork(int nice_value)
   // Skip List
   np->nice_value = nice_value;
   np->virtual_deadline = compute_virtual_deadline(nice_value);
-  insert_node(skiplist, np->pid, np->virtual_deadline, np);
+  insert_node(skiplist, np);
 
   return pid;
 }
@@ -630,7 +625,7 @@ scheduler(void)
         p->virtual_deadline = compute_virtual_deadline(p->nice_value);
         
         cprintf("Reinserting since runnuble| pid: %d, ticks_left: %d\n", p->pid, p->ticks_left);
-        insert_node(skiplist, p->pid, p->virtual_deadline, p);
+        insert_node(skiplist, p);
       } else if (p->state == SLEEPING) {
         delete_node(skiplist, p->pid, p->virtual_deadline);
       } else if (p->state == ZOMBIE) {
@@ -756,7 +751,7 @@ wakeup1(void *chan)
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
       cprintf("\n Process woken up: %d\n\n", p->pid);
-      insert_node(skiplist, p->pid, p->virtual_deadline, p);
+      insert_node(skiplist, p);
     }
   }
 }
@@ -785,7 +780,7 @@ kill(int pid)
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING) {
         p->state = RUNNABLE;
-        insert_node(skiplist, p->pid, p->virtual_deadline, p);
+        insert_node(skiplist, p);
       }
       release(&ptable.lock);
       return 0;
