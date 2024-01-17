@@ -624,14 +624,18 @@ scheduler(void)
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
-      delete_node(skiplist, p->pid, p->virtual_deadline);
-      if (p->state == RUNNABLE) {
-        if (p->ticks_left == 0) {
-          p->virtual_deadline = compute_virtual_deadline(p->nice_value);
-        }
+      
+      if (p->state == RUNNABLE && p->ticks_left == 0) {
+        delete_node(skiplist, p->pid, p->virtual_deadline);
+        p->virtual_deadline = compute_virtual_deadline(p->nice_value);
+        
         cprintf("Reinserting since runnuble| pid: %d, ticks_left: %d\n", p->pid, p->ticks_left);
         insert_node(skiplist, p->pid, p->virtual_deadline, p);
-      } 
+      } else if (p->state == SLEEPING) {
+        delete_node(skiplist, p->pid, p->virtual_deadline);
+      } else if (p->state == ZOMBIE) {
+        delete_node(skiplist, p->pid, p->virtual_deadline);
+      }
 
 
       c->proc = 0;
@@ -726,14 +730,13 @@ sleep(void *chan, struct spinlock *lk)
   // Go to sleep.
   p->chan = chan;
   p->state = SLEEPING;
-
-
+  cprintf("will sleep pid %d\n", p->pid);
 
   sched();
 
   // Tidy up.
   p->chan = 0;
-
+  
   // Reacquire original lock.
   if(lk != &ptable.lock){  //DOC: sleeplock2
     release(&ptable.lock);
