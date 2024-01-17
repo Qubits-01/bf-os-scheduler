@@ -774,14 +774,9 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
-
       // change wokeup
+      cprintf("\n Process woken up: %d\n\n", p->pid);
       p->woke_up = 1;
-
-      //Insert on skiplist
-      // cprintf("inserting due to wakeup\n");
-      // p->virtual_deadline = compute_virtual_deadline(p->nice_value);
-      // insert_node(skiplist, p->pid, p->virtual_deadline);
     }
   }
 }
@@ -790,7 +785,6 @@ wakeup1(void *chan)
 void
 wakeup(void *chan)
 {
-  //cprintf("--wakeup called\n");
   acquire(&ptable.lock);
   wakeup1(chan);
   release(&ptable.lock);
@@ -802,7 +796,6 @@ wakeup(void *chan)
 int
 kill(int pid)
 {
-  //cprintf("--kill called\n");
   struct proc *p;
 
   acquire(&ptable.lock);
