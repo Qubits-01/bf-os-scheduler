@@ -343,7 +343,6 @@ found:
 void
 userinit(void)
 {
-  //cprintf("--userinit called\n");
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
@@ -470,7 +469,6 @@ int fork(void) {
 void
 exit(void)
 {
-  //cprintf("--exit called\n");
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
@@ -516,7 +514,6 @@ exit(void)
 int
 wait(void)
 {
-  //cprintf("--wait called\n");
   struct proc *p;
   int havekids, pid;
   struct proc *curproc = myproc();
@@ -578,20 +575,10 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    // Add to skip list woke up processes
-    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-    //   if (p->state == ZOMBIE) {
-    //     delete_node(skiplist, p->pid, p->virtual_deadline);
-    //   }
-    // }
-    
 
-    // TO DO: Get next process pid from skip list 
     int next_process_pid = get_minimum(skiplist);
-    //cprintf("next pid is %d\n", next_process_pid);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if (p->pid != next_process_pid) {// switch to: if(p->pid != next_process_pid || p->state != RUNNABLE)
-      // if(p->state != RUNNABLE) {
+      if (p->pid != next_process_pid) {
         continue;
       }
 
@@ -637,7 +624,6 @@ scheduler(void)
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
-      //cprintf("here\n");
       delete_node(skiplist, p->pid, p->virtual_deadline);
       if (p->state == RUNNABLE) {
         if (p->ticks_left == 0) {
@@ -766,7 +752,6 @@ wakeup1(void *chan)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
     if(p->state == SLEEPING && p->chan == chan) {
       p->state = RUNNABLE;
-      // change wokeup
       cprintf("\n Process woken up: %d\n\n", p->pid);
       insert_node(skiplist, p->pid, p->virtual_deadline, p);
     }
@@ -795,8 +780,10 @@ kill(int pid)
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
-      if(p->state == SLEEPING)
+      if(p->state == SLEEPING) {
         p->state = RUNNABLE;
+        insert_node(skiplist, p->pid, p->virtual_deadline, p);
+      }
       release(&ptable.lock);
       return 0;
     }
