@@ -7,6 +7,7 @@
     "param.h": "c",
     "bfs.h": "c",
     "proc.h": "c",
-    "spinlock.h": "c"
+    "spinlock.h": "c",
+    "skiplist.h": "c"
   }
 }
