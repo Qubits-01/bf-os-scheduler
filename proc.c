@@ -13,7 +13,7 @@
 #define NULL 0
 #define SKIPLIST_LEVELS 4
 
-int seed = 1234567; // To Do: move to bfs.h
+int seed = 1234567; 
 
 
 struct skiplist * init_skiplist() {
