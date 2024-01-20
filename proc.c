@@ -132,7 +132,6 @@ void insert_node(struct skiplist * skiplist, struct proc * p) {
     current_level++;
   }
   cprintf("inserted|[%d]%d\n", p->pid, p->max_level);
-  print_skiplist(skiplist); //delete
 }
 
 void delete_from_levels(struct node * node) {
@@ -184,7 +183,6 @@ void delete_node(struct skiplist * skiplist, struct proc * p) {
     delete_from_levels(current_node);
     cprintf("removed|[%d]%d\n", p->pid, current_level);
   }
-  print_skiplist(skiplist); //delete
   p->max_level = -1;
 }
 
