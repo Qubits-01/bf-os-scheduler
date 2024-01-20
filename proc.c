@@ -132,6 +132,7 @@ void insert_node(struct skiplist * skiplist, struct proc * p) {
     current_level++;
   }
   cprintf("inserted|[%d]%d\n", p->pid, p->max_level);
+  print_skiplist(skiplist); //delete
 }
 
 void delete_from_levels(struct node * node) {
@@ -183,6 +184,7 @@ void delete_node(struct skiplist * skiplist, struct proc * p) {
     delete_from_levels(current_node);
     cprintf("removed|[%d]%d\n", p->pid, current_level);
   }
+  print_skiplist(skiplist); //delete
   p->max_level = -1;
 }
 
@@ -580,6 +582,7 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
       p->ticks_left = BFS_DEFAULT_QUANTUM;
+      delete_node(skiplist, p);
 
       // Schedlog
       if (schedlog_active) {
@@ -616,11 +619,10 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       
       if (p->state == RUNNABLE && p->ticks_left == 0) {
-        delete_node(skiplist, p);
-        p->virtual_deadline = compute_virtual_deadline(p->nice_value);
+        if (p->ticks_left == 0) {
+          p->virtual_deadline = compute_virtual_deadline(p->nice_value);
+        }
         insert_node(skiplist, p);
-      } else if (p->state == SLEEPING || p->state == ZOMBIE) {
-        delete_node(skiplist, p);
       } 
 
 
