@@ -616,7 +616,7 @@ scheduler(void)
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       
-      if (p->state == RUNNABLE && p->ticks_left == 0) {
+      if (p->state == RUNNABLE) {
         if (p->ticks_left == 0) {
           p->virtual_deadline = compute_virtual_deadline(p->nice_value);
         }
