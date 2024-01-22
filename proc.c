@@ -13,7 +13,7 @@
 #define NULL 0
 #define SKIPLIST_LEVELS 4
 
-int seed = 1234567; // To Do: move to bfs.h
+int seed = 1234567; 
 
 
 struct skiplist * init_skiplist() {
@@ -580,6 +580,7 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
       p->ticks_left = BFS_DEFAULT_QUANTUM;
+      delete_node(skiplist, p);
 
       // Schedlog
       if (schedlog_active) {
@@ -616,11 +617,10 @@ scheduler(void)
       // It should have changed its p->state before coming back.
       
       if (p->state == RUNNABLE && p->ticks_left == 0) {
-        delete_node(skiplist, p);
-        p->virtual_deadline = compute_virtual_deadline(p->nice_value);
+        if (p->ticks_left == 0) {
+          p->virtual_deadline = compute_virtual_deadline(p->nice_value);
+        }
         insert_node(skiplist, p);
-      } else if (p->state == SLEEPING || p->state == ZOMBIE) {
-        delete_node(skiplist, p);
       } 
 
 
