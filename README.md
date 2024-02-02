@@ -184,8 +184,54 @@ scheduler(void)
 The `nicefork` function is an extension of the traditional `fork` operation, allowing the specification of a nice value for the newly created process. It computes the virtual deadline for the process and inserts it into the skip list.
 
 ```c
-int nicefork(int nice_value) {
-  // Implementation details...
+int
+nicefork(int nice_value)
+{
+  int i, pid;
+  struct proc *np;
+  struct proc *curproc = myproc();
+
+  // Allocate process.
+  if((np = allocproc()) == 0){
+    return -1;
+  }
+
+  // Copy process state from proc.
+  if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+    kfree(np->kstack);
+    np->kstack = 0;
+    np->state = UNUSED;
+    return -1;
+  }
+  np->sz = curproc->sz;
+  np->parent = curproc;
+  *np->tf = *curproc->tf;
+
+
+  // Clear %eax so that fork returns 0 in the child.
+  np->tf->eax = 0;
+
+  for(i = 0; i < NOFILE; i++)
+    if(curproc->ofile[i])
+      np->ofile[i] = filedup(curproc->ofile[i]);
+  np->cwd = idup(curproc->cwd);
+
+  safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+
+  pid = np->pid;
+
+  acquire(&ptable.lock);
+
+  np->state = RUNNABLE;
+
+  release(&ptable.lock);
+
+  // Skip List
+  np->nice_value = nice_value;
+  np->virtual_deadline = compute_virtual_deadline(nice_value);
+  insert_node(skiplist, np);
+
+  return pid;
 }
 ```
 
